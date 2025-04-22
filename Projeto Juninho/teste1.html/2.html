@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Defesa de Torre</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f0f0; }
+        canvas { border: 1px solid black; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-family: Arial, sans-serif;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="info">
+    <p>Recursos: <span id="resources">100</span></p>
+    <p>Ondas: <span id="waves">1</span></p>
+</div>
+
+<script>
+// Configuração do canvas
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 800;
+canvas.height = 600;
+
+let resources = 100;  // Recursos iniciais
+let wave = 1;         // Número da onda
+
+// Classe do inimigo (com diferentes tipos)
+class Enemy {
+    constructor(x, y, speed, health, type) {
+        this.x = x;
+        this.y = y;
+        this.speed = speed;
+        this.health = health;
+        this.type = type;  // Tipo de inimigo
+        this.width = 30;
+        this.height = 30;
+    }
+
+    // Movimento do inimigo
+    move() {
+        this.x += this.speed;
+    }
+
+    // Verificar se o inimigo morreu
+    isDead() {
+        return this.health <= 0;
+    }
+
+    // Desenho do inimigo
+    draw() {
+        switch (this.type) {
+            case 'fast':
+                ctx.fillStyle = 'green';  // Inimigo rápido
+                break;
+            case 'tank':
+                ctx.fillStyle = 'blue';  // Inimigo forte
+                break;
+            case 'normal':
+            default:
+                ctx.fillStyle = 'red';  // Inimigo normal
+                break;
+        }
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+}
+
+// Classe da torre (com diferentes tipos)
+class Tower {
+    constructor(x, y, range, damage, cost, type) {
+        this.x = x;
+        this.y = y;
+        this.range = range;
+        this.damage = damage;
+        this.cost = cost;
+        this.type = type;  // Tipo de torre
+        this.width = 50;
+        this.height = 50;
+    }
+
+    // Verificar se um inimigo está dentro do alcance da torre
+    inRange(enemy) {
+        return Math.sqrt((enemy.x - this.x) ** 2 + (enemy.y - this.y) ** 2) < this.range;
+    }
+
+    // Atacar inimigo
+    attack(enemy) {
+        if (this.inRange(enemy)) {
+            enemy.health -= this.damage;
+        }
+    }
+
+    // Desenho da torre
+    draw() {
+        switch (this.type) {
+            case 'shooter':
+                ctx.fillStyle = 'orange';  // Torre de tiro rápido
+                break;
+            case 'bomb':
+                ctx.fillStyle = 'purple';  // Torre de dano em área
+                break;
+            default:
+                ctx.fillStyle = 'blue';  // Torre padrão
+                break;
+        }
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+}
+
+// Função para gerar inimigos aleatórios
+function generateRandomEnemies(numEnemies) {
+    const enemyTypes = ['normal', 'fast', 'tank'];
+    let newEnemies = [];
+    for (let i = 0; i < numEnemies; i++) {
+        const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+        const speed = type === 'fast' ? 2 : type === 'tank' ? 0.5 : 1;
+        const health = type === 'fast' ? 50 : type === 'tank' ? 200 : 100;
+        newEnemies.push(new Enemy(0, 50 + i * 40, speed, health, type));
+    }
+    return newEnemies;
+}
+
+// Definir torres (vários tipos)
+let towers = [
+    new Tower(100, 250, 100, 10, 50, 'shooter'),
+    new Tower(200, 250, 75, 20, 75, 'bomb'),
+];
+
+// Variáveis de inimigos e controle de ondas
+let enemies = generateRandomEnemies(5);  // Gera os inimigos da primeira onda
+
+// Função de atualização do jogo
+function updateGame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Atualiza e desenha inimigos
+    enemies.forEach(enemy => {
+        enemy.move();
+        enemy.draw();  // Desenha o inimigo com a cor do tipo
+    });
+
+    // Atualiza e desenha torres
+    towers.forEach(tower => {
+        tower.draw();  // Desenha a torre com a cor do tipo
+        // Ataque das torres
+        enemies.forEach(enemy => tower.attack(enemy));
+    });
+
+    // Verifica se algum inimigo morreu e recompensa com recursos
+    enemies = enemies.filter(enemy => {
+        if (enemy.isDead()) {
+            resources += 10;  // Recompensa por matar um inimigo
+        }
+        return !enemy.isDead();
+    });
+
+    // Se todos os inimigos foram derrotados, passar para a próxima onda
+    if (enemies.length === 0) {
+        wave++;
+        document.getElementById('waves').innerText = wave;
+        enemies = generateRandomEnemies(5 + wave);  // Aumenta a quantidade de inimigos a cada onda
+    }
+
+    // Atualiza o display de recursos
+    document.getElementById('resources').innerText = resources;
+
+    requestAnimationFrame(updateGame);
+}
+
+updateGame(); // Inicia o jogo
+</script>
+
+</body>
+</html>
